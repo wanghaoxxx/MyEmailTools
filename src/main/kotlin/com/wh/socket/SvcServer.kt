@@ -28,7 +28,7 @@ class SvcServer {
     private fun handleClientRequest(ins: InputStream) {
         val buffer = Okio.buffer(Okio.source(ins))
         val msg = buffer.readUtf8Line()
-        println("收到客户端信息 ：" + msg)
+        println("收到客户端信息 ：$msg")
     }
 
 }
