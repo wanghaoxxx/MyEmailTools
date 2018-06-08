@@ -156,15 +156,18 @@ private fun placeComponents(panel: JPanel) {
         thread {
             //开启线程防止UI线程卡住
             try {
-                startGo(listItem, originTF.text, userText.text, userText)
+                startGo(listItem, originTF.text, userText.text, logOutput)
             } catch (e: Exception) {
                 SwingUtilities.invokeLater { logOutput.append(e.message) }
             } finally {
                 SwingUtilities.invokeLater {
-                    selectOrigin.isEnabled = false
-                    selectButton.isEnabled = false
-                    delButton.isEnabled = false
-                    goButton.isEnabled = false
+                    //更新UI
+                    logOutput.append("全部替换完成...\n")
+
+                    selectOrigin.isEnabled = true
+                    selectButton.isEnabled = true
+                    delButton.isEnabled = true
+                    goButton.isEnabled = true
                 }
             }
         }
@@ -193,8 +196,7 @@ fun startGo(listModel: DefaultListModel<String>,
             manager.save(replace.absolutePath)
             SwingUtilities.invokeLater {
                 //更新UI
-                logText.append("替换 ${replace.absolutePath} 完成...")
-                logText.append("\n")
+                logText.append("替换 ${replace.absolutePath} 完成...\n")
             }
         }
     }
