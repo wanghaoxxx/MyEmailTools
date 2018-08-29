@@ -1,6 +1,10 @@
 package com.wh
 
+import com.wh.utils.ZipUtils
 import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.swing.*
 import javax.swing.JList
 import kotlin.concurrent.thread
@@ -186,8 +190,12 @@ fun startGo(listModel: DefaultListModel<String>,
     for (i in 0 until 100) {
         manager.insertText("\n")
     }
+
+    val folderFiles = mutableListOf<File>()
+
     for (i in 0 until listModel.size()) {
         val replaceFolder = File(listModel.getElementAt(i))
+        folderFiles.add(replaceFolder)
         val replaces = replaceFolder.listFiles() ?: return
         for (replace in replaces) {
             if (!replace.name.endsWith(".doc")) continue
@@ -202,9 +210,23 @@ fun startGo(listModel: DefaultListModel<String>,
     }
     manager.closeDocument()
     manager.close()
+    SwingUtilities.invokeLater {
+        //更新UI
+        logText.append("开始打包...\n")
+    }
+    startZipPacket(File(originFile).parent,folderFiles)
+    SwingUtilities.invokeLater {
+        //更新UI
+        logText.append("打包完成...\n")
+    }
 }
 
 
-
+fun startZipPacket(zipFolder: String, srcDirList: MutableList<File>) {
+    val cal = Calendar.getInstance()
+    val zipName = "附件${cal.get(Calendar.MONTH)+1}${cal.get(Calendar.DAY_OF_MONTH)}${cal.get(Calendar.HOUR)}${cal.get(Calendar.MINUTE)}.zip"
+    val fos1 = FileOutputStream(File("$zipFolder/$zipName"))
+    ZipUtils.toZip(srcDirList, fos1)
+}
 
 
