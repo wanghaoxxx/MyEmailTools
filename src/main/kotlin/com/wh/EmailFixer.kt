@@ -214,7 +214,7 @@ fun startGo(listModel: DefaultListModel<String>,
         //更新UI
         logText.append("开始打包...\n")
     }
-    startZipPacket(File(originFile).parent,folderFiles)
+    startZipPacket(File(originFile).parent, folderFiles)
     SwingUtilities.invokeLater {
         //更新UI
         logText.append("打包完成...\n")
@@ -224,9 +224,9 @@ fun startGo(listModel: DefaultListModel<String>,
 
 fun startZipPacket(zipFolder: String, srcDirList: MutableList<File>) {
     val cal = Calendar.getInstance()
-    val zipName = "附件${cal.get(Calendar.MONTH)+1}${cal.get(Calendar.DAY_OF_MONTH)}${cal.get(Calendar.HOUR)}${cal.get(Calendar.MINUTE)}.zip"
+    val zipName = "附件${cal.get(Calendar.MONTH) + 1}${cal.get(Calendar.DAY_OF_MONTH)}${cal.get(Calendar.HOUR)}${cal.get(Calendar.MINUTE)}.zip"
     val fos1 = FileOutputStream(File("$zipFolder/$zipName"))
-    ZipUtils.toZip(srcDirList, fos1)
+    ZipUtils.toZip(srcDirList, fos1, true)
 }
 
 
