@@ -1,4 +1,4 @@
-package com.wh;
+package com.wh.structure;
 
 public class MyLinkList<E> {
 
@@ -53,11 +53,6 @@ public class MyLinkList<E> {
 
     public int size() {
         return size;
-    }
-
-    private LinkNode<E> findNode(E e) {
-
-        return null;
     }
 
     @Override
