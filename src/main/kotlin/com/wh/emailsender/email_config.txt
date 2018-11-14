@@ -1,0 +1,3 @@
+/Users/wanghao/附件/
+/Users/wanghao/email_titles.txt
+/Users/wanghao/email_address.txt
