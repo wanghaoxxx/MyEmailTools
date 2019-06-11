@@ -124,6 +124,10 @@ private fun placeComponents(panel: JPanel) {
     panel.add(logScroll)
 
 
+    val docxCb = JCheckBox("docx")
+    docxCb.setBounds(300, 200, 80, 40)
+    panel.add(docxCb)
+
     //开始修改按钮
     val goButton = JButton("开始修改")
     goButton.setBounds(300, 145, 80, 25)
@@ -152,6 +156,8 @@ private fun placeComponents(panel: JPanel) {
             return@addActionListener
         }
 
+        val isDocx = docxCb.isSelected
+
         selectOrigin.isEnabled = false
         selectButton.isEnabled = false
         delButton.isEnabled = false
@@ -160,7 +166,7 @@ private fun placeComponents(panel: JPanel) {
         thread {
             //开启线程防止UI线程卡住
             try {
-                startGo(listItem, originTF.text, userText.text, logOutput)
+                startGo(listItem, originTF.text, userText.text, logOutput, isDocx)
             } catch (e: Exception) {
                 SwingUtilities.invokeLater { logOutput.append(e.message) }
             } finally {
@@ -181,7 +187,8 @@ private fun placeComponents(panel: JPanel) {
 fun startGo(listModel: DefaultListModel<String>,
             originFile: String,
             insertText: String,
-            logText: JTextArea) {
+            logText: JTextArea,
+            isDocx: Boolean) {
     //打开源文档
     val manager = MSWordManager(false)
     manager.setSaveOnExit(false)
@@ -198,10 +205,26 @@ fun startGo(listModel: DefaultListModel<String>,
         folderFiles.add(replaceFolder)
         val replaces = replaceFolder.listFiles() ?: return
         for (replace in replaces) {
-            if (!replace.name.endsWith(".doc")) continue
+            if (!replace.name.endsWith(".doc")
+                    || !replace.name.endsWith(".docx")) continue
             manager.moveEnd()
             manager.insertText(insertText)
-            manager.save(replace.absolutePath)
+
+            var path = replace.absolutePath
+
+            if (isDocx) {
+                if (path.endsWith(".doc")) {
+                    path = path.replace(".doc", ".docx")
+                }
+
+                manager.saveDocx(path)
+            } else {
+                if (path.endsWith(".docx")) {
+                    path = path.replace(".docx", ".doc")
+                }
+
+                manager.save(path)
+            }
             SwingUtilities.invokeLater {
                 //更新UI
                 logText.append("替换 ${replace.absolutePath} 完成...\n")
