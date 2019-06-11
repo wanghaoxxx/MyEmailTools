@@ -49,6 +49,7 @@
             <artifactId>jsoup</artifactId>
             <version>1.11.2</version>
         </dependency>
+
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib-jdk8</artifactId>
@@ -60,6 +61,7 @@
             <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
+
 
     </dependencies>
 
@@ -113,5 +115,13 @@
         </plugins>
     </build>
 
+
+
+    <repositories>
+        <repository>
+            <id>central</id>
+            <url>https://jcenter.bintray.com</url>
+        </repository>
+    </repositories>
 
 </project>
