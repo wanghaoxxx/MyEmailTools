@@ -70,7 +70,7 @@ private fun placeComponents(panel: JPanel, names: List<String>) {
     panel.add(selectButton)
     selectButton.addActionListener {
         val jfc = JFileChooser()
-        jfc.fileSelectionMode = JFileChooser.FILES_ONLY
+        jfc.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
         jfc.isMultiSelectionEnabled = false
         jfc.showDialog(JLabel(), "选择")
         val file = jfc.selectedFile ?: return@addActionListener
@@ -213,7 +213,7 @@ fun startGo(outputDir: String,
         docs.add(it)
     }
 
-    startZipPacket(outputDir, docs)
+    startZipPacket(outputDir, docs, isDocx)
 
     // 删除临时文件
     docTemp.deleteRecursively()
@@ -225,10 +225,10 @@ fun startGo(outputDir: String,
 }
 
 
-fun startZipPacket(zipFolder: String, srcDirList: MutableList<File>) {
+fun startZipPacket(zipFolder: String, srcDirList: MutableList<File>, isDocx: Boolean) {
     val format = SimpleDateFormat("yyyyMMddHHmm")
     val date = format.format(Date())
-    val zipName = "附件$date.zip"
+    val zipName = "附件${if (isDocx) "docx" else ""}$date.zip"
     val fos1 = FileOutputStream(File("$zipFolder/$zipName"))
     ZipUtils.toZip(srcDirList, fos1, true)
 }
