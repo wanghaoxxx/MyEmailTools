@@ -195,6 +195,8 @@ fun startGo(outputDir: String,
         } else {
             manager.save("$docPath.doc")
         }
+        //暂停1s
+        Thread.sleep(1 * 1000)
         SwingUtilities.invokeLater {
             //更新UI
             logText.append("替换 $name 完成...\n")
