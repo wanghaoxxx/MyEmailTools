@@ -1,16 +1,18 @@
 package com.wh
 
 import com.wh.utils.ZipUtils
+import okio.Okio
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.swing.*
-import javax.swing.JList
 import kotlin.concurrent.thread
 
 
-fun main(args: Array<String>) {
+fun main() {
+    val names = initNames()
+
     // 创建 JFrame 实例
     val frame = JFrame("小楠宝附件修改器")
     // Setting the width and height of frame
@@ -19,11 +21,25 @@ fun main(args: Array<String>) {
 
     val panel = JPanel()
     frame.add(panel)
-    placeComponents(panel)
+    placeComponents(panel, names)
     frame.isVisible = true
 }
 
-private fun placeComponents(panel: JPanel) {
+private fun initNames(): List<String> {
+    val source = Okio.buffer(Okio.source(File("./names_file")))
+
+    val names = mutableListOf<String>()
+
+    while (true) {
+        val line = source.readUtf8Line() ?: break
+        names.add(line)
+    }
+
+    return names
+}
+
+
+private fun placeComponents(panel: JPanel, names: List<String>) {
     panel.layout = null
     //选择源文件
     val originTF = JTextField()
@@ -38,53 +54,28 @@ private fun placeComponents(panel: JPanel) {
         jfc.fileSelectionMode = JFileChooser.FILES_ONLY
         jfc.isMultiSelectionEnabled = false
         jfc.showDialog(JLabel(), "选择")
-        val file = jfc.selectedFile
-        if (file == null) {
-            JOptionPane.showMessageDialog(panel,
-                    "小楠宝不要忘记选择文件哦！",
-                    "小楠宝快看这里",
-                    JOptionPane.WARNING_MESSAGE)
-            return@addActionListener
-        }
-
+        val file = jfc.selectedFile ?: return@addActionListener
         originTF.text = file.absolutePath
     }
 
+    var outputDir: String? = null
 
-    //选择文件列表控件
-    val scrollPane = JScrollPane()
-    scrollPane.setBounds(20, 65, 270, 120)
-    val listItem = DefaultListModel<String>()
-    listItem.addElement("选择文件...")
-    val list = JList(listItem)
+    //选择输出路径
+    val outputJt = JTextField()
+    outputJt.setBounds(20, 75, 270, 25)
+    panel.add(outputJt)
 
-    scrollPane.setViewportView(list)
-    panel.add(scrollPane)
-
-    //选择文件按钮
-    val selectButton = JButton("选择文件")
+    val selectButton = JButton("输出路径")
     selectButton.setBounds(300, 75, 80, 25)
     panel.add(selectButton)
     selectButton.addActionListener {
         val jfc = JFileChooser()
-        jfc.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
-        jfc.isMultiSelectionEnabled = true
+        jfc.fileSelectionMode = JFileChooser.FILES_ONLY
+        jfc.isMultiSelectionEnabled = false
         jfc.showDialog(JLabel(), "选择")
-        val files = jfc.selectedFiles
-        if (files == null || files.isEmpty()) {
-            JOptionPane.showMessageDialog(panel,
-                    "小楠宝不要忘记选择文件哦！",
-                    "小楠宝快看这里",
-                    JOptionPane.WARNING_MESSAGE)
-            return@addActionListener
-        }
-
-        listItem.clear()
-
-        files.forEach {
-            listItem.addElement(it.absolutePath)
-        }
-        list.model = listItem
+        val file = jfc.selectedFile ?: return@addActionListener
+        outputJt.text = file.absolutePath
+        outputDir = file.absolutePath
     }
 
     //删除文件按钮
@@ -92,19 +83,8 @@ private fun placeComponents(panel: JPanel) {
     delButton.setBounds(300, 110, 80, 25)
     panel.add(delButton)
     delButton.addActionListener {
-        val selected = list.selectedIndex
-        if (selected < 0) {
-            JOptionPane.showMessageDialog(panel,
-                    "小楠宝没有选要删那个哦！",
-                    "小楠宝快看这里",
-                    JOptionPane.WARNING_MESSAGE)
-            return@addActionListener
-        }
-
-        if (selected < listItem.size()) {
-            listItem.remove(selected)
-            list.model = listItem
-        }
+        outputJt.text = null
+        outputDir = null
     }
 
     val tipsInput = JLabel("输入要插入的内容：")
@@ -133,9 +113,9 @@ private fun placeComponents(panel: JPanel) {
     goButton.setBounds(300, 145, 80, 25)
     panel.add(goButton)
     goButton.addActionListener {
-        if (listItem.size() == 0) {
+        if (outputDir == null) {
             JOptionPane.showMessageDialog(panel,
-                    "小楠宝没选替换文件夹！",
+                    "输出文件夹为空！",
                     "小楠宝快看这里",
                     JOptionPane.WARNING_MESSAGE)
             return@addActionListener
@@ -166,7 +146,7 @@ private fun placeComponents(panel: JPanel) {
         thread {
             //开启线程防止UI线程卡住
             try {
-                startGo(listItem, originTF.text, userText.text, logOutput, isDocx)
+                startGo(outputDir!!, names, originTF.text, userText.text, logOutput, isDocx)
             } catch (e: Exception) {
                 SwingUtilities.invokeLater { logOutput.append(e.message) }
             } finally {
@@ -184,7 +164,8 @@ private fun placeComponents(panel: JPanel) {
     }
 }
 
-fun startGo(listModel: DefaultListModel<String>,
+fun startGo(outputDir: String,
+            names: List<String>,
             originFile: String,
             insertText: String,
             logText: JTextArea,
@@ -198,46 +179,45 @@ fun startGo(listModel: DefaultListModel<String>,
         manager.insertText("\n")
     }
 
-    val folderFiles = mutableListOf<File>()
+    // 创建临时文件夹
+    val docTemp = File(File(outputDir), "docs")
+    docTemp.mkdirs()
 
-    for (i in 0 until listModel.size()) {
-        val replaceFolder = File(listModel.getElementAt(i))
-        folderFiles.add(replaceFolder)
-        val replaces = replaceFolder.listFiles() ?: return
-        for (replace in replaces) {
-            if (!replace.name.endsWith(".doc")
-                    || !replace.name.endsWith(".docx")) continue
-            manager.moveEnd()
-            manager.insertText(insertText)
+    // 开始生产文件
+    for (name in names) {
+        manager.moveEnd()
+        manager.insertText(insertText)
 
-            var path = replace.absolutePath
+        val docPath = docTemp.absolutePath + File.separator + name
 
-            if (isDocx) {
-                if (path.endsWith(".doc")) {
-                    path = path.replace(".doc", ".docx")
-                }
-
-                manager.saveDocx(path)
-            } else {
-                if (path.endsWith(".docx")) {
-                    path = path.replace(".docx", ".doc")
-                }
-
-                manager.save(path)
-            }
-            SwingUtilities.invokeLater {
-                //更新UI
-                logText.append("替换 ${replace.absolutePath} 完成...\n")
-            }
+        if (isDocx) {
+            manager.saveDocx("$docPath.docx")
+        } else {
+            manager.save("$docPath.doc")
+        }
+        SwingUtilities.invokeLater {
+            //更新UI
+            logText.append("替换 $name 完成...\n")
         }
     }
+
     manager.closeDocument()
     manager.close()
     SwingUtilities.invokeLater {
         //更新UI
         logText.append("开始打包...\n")
     }
-    startZipPacket(File(originFile).parent, folderFiles)
+
+    val docs = mutableListOf<File>()
+    docTemp.listFiles()?.forEach {
+        docs.add(it)
+    }
+
+    startZipPacket(outputDir, docs)
+
+    // 删除临时文件
+    docTemp.deleteRecursively()
+
     SwingUtilities.invokeLater {
         //更新UI
         logText.append("打包完成...\n")
