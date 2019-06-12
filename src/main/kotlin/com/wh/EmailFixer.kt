@@ -32,9 +32,10 @@ private fun initNames(): List<String> {
 
     while (true) {
         val line = source.readUtf8Line() ?: break
-        names.add(line)
+        if(line.isNotEmpty()) {
+            names.add(line)
+        }
     }
-
     return names
 }
 
