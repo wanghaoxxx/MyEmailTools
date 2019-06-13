@@ -25,21 +25,30 @@ fun main() {
     frame.isVisible = true
 }
 
-private fun initNames(): List<String> {
+private fun initNames(): Map<String, List<String>> {
     val source = Okio.buffer(Okio.source(File("./names_file")))
 
-    val names = mutableListOf<String>()
+    val mappers = mutableMapOf<String, List<String>>()
+    var values: MutableList<String>? = null
+    var key: String
 
     while (true) {
         val line = source.readUtf8Line() ?: break
-        names.add(line)
-    }
+        if (line.isEmpty()) continue
 
-    return names
+        if (line.startsWith("#")) {
+            key = line.substring(1)
+            values = mutableListOf()
+            mappers[key] = values
+            continue
+        }
+        values?.add(line)
+    }
+    return mappers
 }
 
 
-private fun placeComponents(panel: JPanel, names: List<String>) {
+private fun placeComponents(panel: JPanel, names: Map<String, List<String>>) {
     panel.layout = null
     //选择源文件
     val originTF = JTextField()
@@ -165,7 +174,7 @@ private fun placeComponents(panel: JPanel, names: List<String>) {
 }
 
 fun startGo(outputDir: String,
-            names: List<String>,
+            names: Map<String, List<String>>,
             originFile: String,
             insertText: String,
             logText: JTextArea,
@@ -179,28 +188,38 @@ fun startGo(outputDir: String,
         manager.insertText("\n")
     }
 
+    val docDirs = mutableListOf<File>()
+
     // 创建临时文件夹
     val docTemp = File(File(outputDir), "docs")
-    docTemp.mkdirs()
 
     // 开始生产文件
-    for (name in names) {
-        manager.moveEnd()
-        manager.insertText(insertText)
+    for ((k, v) in names) {
 
-        val docPath = docTemp.absolutePath + File.separator + name
+        val docDir = File(docTemp, k)
+        if (!docDir.exists()) docDir.mkdirs()
 
-        if (isDocx) {
-            manager.saveDocx("$docPath.docx")
-        } else {
-            manager.save("$docPath.doc")
+        docDirs.add(docDir)
+
+        for (name in v) {
+            manager.moveEnd()
+            manager.insertText(insertText)
+
+            val path = "${docDir.absolutePath}${File.separator}$name"
+
+            if (isDocx) {
+                manager.saveDocx("$path.docx")
+            } else {
+                manager.save("$path.doc")
+            }
+
+            SwingUtilities.invokeLater {
+                //更新UI
+                logText.append("替换 $name 完成...\n")
+            }
+
         }
-        //暂停1s
-        Thread.sleep(1 * 1000)
-        SwingUtilities.invokeLater {
-            //更新UI
-            logText.append("替换 $name 完成...\n")
-        }
+
     }
 
     manager.closeDocument()
@@ -210,12 +229,7 @@ fun startGo(outputDir: String,
         logText.append("开始打包...\n")
     }
 
-    val docs = mutableListOf<File>()
-    docTemp.listFiles()?.forEach {
-        docs.add(it)
-    }
-
-    startZipPacket(outputDir, docs, isDocx)
+    startZipPacket(outputDir, docDirs, isDocx)
 
     // 删除临时文件
     docTemp.deleteRecursively()
